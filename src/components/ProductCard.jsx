@@ -1,11 +1,14 @@
 import { Card, CardMedia, CardContent, Typography, Button, Box } from "@mui/material";
 import { useCartStore } from "../store/cartStore"; // ✅ Düzeltilmiş import
+import { useNavigate } from "react-router-dom";
+
 
 const ProductCard = ({ product }) => {
   const addToCart = useCartStore((state) => state.addToCart);
+  const navigate = useNavigate();
 
   return (
-    <Card
+    <Card onClick={() => navigate(`/product/${product.id}`)}
       sx={{
         width: "100%",
         height: "100%",
@@ -18,6 +21,7 @@ const ProductCard = ({ product }) => {
           transform: "scale(1.05)",
           boxShadow: 6,
         },
+        cursor: "pointer",
       }}
     >
       <CardMedia component="img" height="200" image={product.imageUrl} alt={product.name} />
@@ -30,8 +34,15 @@ const ProductCard = ({ product }) => {
           {product.price} TL
         </Typography>
       </CardContent>
-      <Box sx={{ p: 2, textAlign: "center" }}>
-        <Button variant="contained" color="primary" fullWidth onClick={() => addToCart(product)}>
+      <Box sx={{ p: 2, textAlign: "center" }}
+        onClick={(e) => e.stopPropagation()} // Card'ın onClick'ini engelliyoruz
+      >
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          onClick={() => addToCart(product)}
+        >
           Sepete Ekle
         </Button>
       </Box>

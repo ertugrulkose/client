@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import ProductList from "./pages/ProductList";
 import Cart from "./pages/Cart";
 import Layout from "./Layout";
+import ProductDetail from "./pages/ProductDetail";
 
 const App = () => {
   const { darkMode } = useThemeStore();
@@ -23,6 +24,7 @@ const App = () => {
         <Routes>
         <Route path="/" element={<Layout> <ProductList/> </Layout>} />
         <Route path="/cart" element={<Layout> <Cart/> </Layout>} />
+        <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
         </Routes>
       </Router>
     </ThemeProvider>

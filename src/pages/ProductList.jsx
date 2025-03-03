@@ -2,33 +2,31 @@ import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
 import ProductCard from "../components/ProductCard";
 import products from "../data/product";
+import HeroSlider from "../components/HeroSlider";
 
 const ProductList = () => {
   return (
-    <Container sx={{ marginTop: "100px", display: "flex", justifyContent: "center" }}>
+    <Box sx={{ marginTop: "100px" }}>
+      {/* Slider en üstte */}
+      <HeroSlider />
+
+      {/* Altında ürün listesi */}
       <Box
         sx={{
           display: "flex",
-          flexWrap: "wrap",      // Ekran daralınca alt satıra geçsin
-          gap: "20px",          // Kartlar arası boşluk
-          maxWidth: "1200px",   // Sayfanın ortalı bir containerı
+          flexWrap: "wrap",
+          gap: "20px",
           justifyContent: "center",
+          mt: 4, // Slider ile ürünler arasında mesafe
         }}
       >
         {products.map((product) => (
-          <Box
-            key={product.id}
-            sx={{
-              width: "300px",    // Tüm kartların sabit genişliği
-              flexGrow: 0,
-              flexShrink: 0,
-            }}
-          >
+          <Box key={product.id} sx={{ width: "300px" }}>
             <ProductCard product={product} />
           </Box>
         ))}
       </Box>
-    </Container>
+    </Box>
   );
 };
 

@@ -1,7 +1,7 @@
 import { Card, CardMedia, CardContent, Typography, Button, Box } from "@mui/material";
 import { useCartStore } from "../store/cartStore"; // ✅ Düzeltilmiş import
 import { useNavigate } from "react-router-dom";
-
+import AddToCartHandler from "./AddToCartButton";
 
 const ProductCard = ({ product }) => {
   const addToCart = useCartStore((state) => state.addToCart);
@@ -37,14 +37,24 @@ const ProductCard = ({ product }) => {
       <Box sx={{ p: 2, textAlign: "center" }}
         onClick={(e) => e.stopPropagation()} // Card'ın onClick'ini engelliyoruz
       >
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={() => addToCart(product)}
-        >
-          Sepete Ekle
-        </Button>
+        <AddToCartHandler product={product}>
+          {(handleAddToCart) => (
+            <Box>
+              {/* 
+                Her sayfada buton tasarımını farklı yapabiliriz.
+                Burada "contained", fullWidth vs.
+              */}
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleAddToCart}
+              >
+                Sepete Ekle
+              </Button>
+            </Box>
+          )}
+        </AddToCartHandler>
       </Box>
     </Card>
   );

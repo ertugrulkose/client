@@ -3,12 +3,11 @@ import { Box, Typography, Button } from "@mui/material";
 import products from "../data/product";
 import { useEffect } from "react";
 import { useCartStore } from "../store/cartStore";
-
-
+import AddToCartHandler from "../components/AddToCartButton";
 
 const ProductDetail = () => {
     const { id } = useParams(); // URL'den gelen ID
-      const addToCart = useCartStore((state) => state.addToCart);
+    const addToCart = useCartStore((state) => state.addToCart);
     const product = products.find((p) => p.id === parseInt(id)); // Ürünü bul
 
     useEffect(() => {
@@ -47,11 +46,18 @@ const ProductDetail = () => {
             >
                 {product.description}
             </Typography>
-            <Button
-                onClick={() => addToCart(product)}
-                variant="contained" color="primary" sx={{ mt: 3 }}>
-                Sepete Ekle
-            </Button>
+            <AddToCartHandler product={product}>
+                {(handleAddToCart) => (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ mt: 3 }}
+                        onClick={handleAddToCart} // Tıklanınca sepete ekle + snackbar
+                    >
+                        Sepete Ekle
+                    </Button>
+                )}
+            </AddToCartHandler>
         </Box>
     );
 };

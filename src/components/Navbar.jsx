@@ -9,7 +9,7 @@ const Navbar = () => {
   const { darkMode, toggleDarkMode } = useThemeStore();
 
   // 1) Hesap ikonuna tıklayınca menüyü açmak için gerekli state:
-  const [anchorEl, setAnchorEl] = useState(null); 
+  const [anchorEl, setAnchorEl] = useState(null);
   // anchorEl = menünün hangi öğeye (ikon) göre konumlanacağını tutar
 
   // Menü açık mı değil mi, anchorEl varsa true
@@ -17,7 +17,7 @@ const Navbar = () => {
 
   // İkon tıklanınca bu fonksiyon çalışır:
   const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget); 
+    setAnchorEl(event.currentTarget);
     // event.currentTarget, tıklanan ikona referanstır
   };
 
@@ -47,28 +47,28 @@ const Navbar = () => {
     setAnchorEl(null); // menüyü kapat
   };
 
-   // Arama kutusu state
-   const [searchQuery, setSearchQuery] = useState("");
+  // Arama kutusu state
+  const [searchQuery, setSearchQuery] = useState("");
 
-   // Arama ikonuna tıklama veya enter'a basılınca çalışacak fonksiyon
-   // Şimdilik console.log, ilerde API'ye istek atabilirsin
-   const handleSearch = () => {
-     console.log("Arama yapılacak:", searchQuery);
-   };
- 
-   // TextField içinde enter'a basınca arama tetikleme
-   const handleKeyDown = (e) => {
-     if (e.key === "Enter") {
-       handleSearch();
-     }
-   };
+  // Arama ikonuna tıklama veya enter'a basılınca çalışacak fonksiyon
+  // Şimdilik console.log, ilerde API'ye istek atabilirsin
+  const handleSearch = () => {
+    console.log("Arama yapılacak:", searchQuery);
+  };
 
-   return (
+  // TextField içinde enter'a basınca arama tetikleme
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  return (
     <AppBar position="fixed" sx={{ width: "100%", left: 0, right: 0 }}>
       <Toolbar
         sx={{
           display: "flex",
-          justifyContent: "space-between", 
+          justifyContent: "space-between",
           // Sol ve sağ kısımları ayırmak için space-between
           maxWidth: "1200px",
           margin: "auto",
@@ -94,20 +94,22 @@ const Navbar = () => {
             placeholder="Ara..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyDown} 
+            onKeyDown={handleKeyDown}
             sx={{
               width: { xs: 120, sm: 300, md: 350 },
               backgroundColor: darkMode ? "#424242" : "#fff",
               borderRadius: 1,
             }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={handleSearch} edge="end">
-                    <SearchIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleSearch} edge="end">
+                      <SearchIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
             }}
           />
         </Box>
@@ -156,7 +158,7 @@ const Navbar = () => {
       </Toolbar>
     </AppBar>
   );
-  
+
 };
 
 export default Navbar;

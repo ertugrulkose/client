@@ -63,6 +63,9 @@ const Navbar = () => {
     }
   };
 
+  // 🔥 Eğer admin panelindeysek Navbar'ı göstermiyoruz
+  //if (location.pathname.startsWith("/admin")) return null;
+
   return (
     <AppBar position="fixed" sx={{ width: "100%", left: 0, right: 0 }}>
       <Toolbar

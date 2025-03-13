@@ -63,10 +63,39 @@ const AdminNavbar = () => {
                 </List>
                 <Divider />
                 <Box sx={{ display: "flex", justifyContent: "space-between", padding: 1 }}>
-                  <Button size="small" onClick={markAllAsRead} color="primary">
+                  <Button size="small"
+                    onClick={markAllAsRead}
+                    sx={{
+                      fontWeight: 600, // Yarı kalın, modern görünüm
+                      fontSize: "0.875rem", // Küçük ama okunaklı
+                      textTransform: "none", // MUI'nin default büyük harf özelliğini kaldır
+                      backgroundColor: "#1976D2", // Modern mavi tonu
+                      color: "#fff", // Beyaz yazı
+                      borderRadius: "8px", // Daha yumuşak buton köşeleri
+                      padding: "6px 16px", // Dengeli iç boşluk
+                      transition: "all 0.3s ease", // Daha yumuşak hover efekti
+                      "&:hover": {
+                        backgroundColor: "#1565C0", // Bir ton koyu hover efekti
+                      }
+                    }}
+                  >
                     Okundu Olarak İşaretle
                   </Button>
-                  <Button size="small" component={Link} to="/admin/notifications">
+                  <Button size="small" component={Link} to="/admin/notifications"
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.875rem",
+                      textTransform: "none",
+                      backgroundColor: "#E0E0E0", // Nötr, sade bir gri
+                      color: "#424242", // Koyu gri, iyi okunaklılık
+                      borderRadius: "8px",
+                      padding: "6px 16px",
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        backgroundColor: "#BDBDBD", // Hover için biraz daha koyu gri
+                      }
+                    }}
+                  >
                     Tümünü Gör
                   </Button>
                 </Box>
@@ -77,7 +106,7 @@ const AdminNavbar = () => {
           </Menu>
 
           {/* Kullanıcı Menüsü */}
-          <IconButton  sx={{ mr: 3 }} onClick={handleMenu} color="inherit">
+          <IconButton sx={{ mr: 3 }} onClick={handleMenu} color="inherit">
             <AccountCircleIcon />
           </IconButton>
           <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>

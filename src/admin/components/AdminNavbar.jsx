@@ -51,7 +51,15 @@ const AdminNavbar = () => {
           </IconButton>
 
           {/* Bildirim Menüsü */}
-          <Menu anchorEl={notifAnchor} open={openNotif} onClose={handleNotifClose}>
+          <Menu anchorEl={notifAnchor}
+            open={openNotif}
+            onClose={handleNotifClose}
+            sx={{
+              maxWidth: "300px", // 📌 Menü genişliği sınırlandı 
+              width: "100%",  // 📌 İçerik taşmasını önler
+            }}
+          >
+
             {notifications.length > 0 ? (
               <>
                 <List dense>
@@ -62,7 +70,12 @@ const AdminNavbar = () => {
                   ))}
                 </List>
                 <Divider />
-                <Box sx={{ display: "flex", justifyContent: "space-between", padding: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    padding: 1,
+                  }}>
                   <Button size="small"
                     onClick={markAllAsRead}
                     sx={{

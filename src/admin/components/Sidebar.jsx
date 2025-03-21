@@ -2,6 +2,7 @@ import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Ico
 import { Dashboard, ShoppingCart, People, BarChart, Menu as MenuIcon } from "@mui/icons-material";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
+import CategoryIcon from '@mui/icons-material/Category';
 
 const Sidebar = () => {
   const [open, setOpen] = useState(false);
@@ -23,6 +24,7 @@ const Sidebar = () => {
   const menuItems = [
     { text: "Dashboard", icon: <Dashboard />, path: "/admin" },
     { text: "Ürünler", icon: <ShoppingCart />, path: "/admin/products" },
+    { text: "Kategoriler", icon: <CategoryIcon />, path: "/admin/categories" },
     { text: "Siparişler", icon: <People />, path: "/admin/orders" },
     { text: "Raporlar", icon: <BarChart />, path: "/admin/reports" },
   ];

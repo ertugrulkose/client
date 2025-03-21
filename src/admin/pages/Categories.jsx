@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-    Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Button, MenuItem, Select, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, TextField
+    Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    Typography, Button, MenuItem, Select, IconButton, Dialog, DialogTitle, DialogContent,
+    DialogActions, CircularProgress, TextField
 } from "@mui/material";
 import { Edit, Delete, Add, Save, Close } from "@mui/icons-material";
 import useCategoryStore from "../../store/categoryStore"; // ✅ Zustand Store'u içe aktardık
@@ -13,6 +15,8 @@ const Categories = () => {
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [openAddDialog, setOpenAddDialog] = useState(false); // 🆕 Modal kontrolü için state
     const [newCategory, setNewCategory] = useState({ name: "", parentCategoryId: null });
+
+    const [searchQuery, setSearchQuery] = useState(""); // 🆕 Arama metni için state
 
     // 📌 Sayfa açıldığında API'den kategorileri çek
     useEffect(() => {
@@ -36,6 +40,11 @@ const Categories = () => {
             </Box>
         );
     }
+
+    // 🆕 Arama filtresi uygulanmış kategori listesi
+    const filteredCategories = categories.filter((category) =>
+        category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     // ✅ **Yeni Kategori Ekleme**
     const handleAddCategory = async () => {
@@ -95,8 +104,18 @@ const Categories = () => {
                 Kategori Yönetimi
             </Typography>
 
-             {/* 🆕 Kategori Ekleme Butonu */}
-             <Button
+            {/* 🆕 Arama kutusu */}
+            <TextField
+                label="Kategori Ara"
+                variant="outlined"
+                fullWidth
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ marginBottom: 2 }}
+            />
+
+            {/* 🆕 Kategori Ekleme Butonu */}
+            <Button
                 variant="contained"
                 color="primary"
                 onClick={() => setOpenAddDialog(true)}
@@ -105,7 +124,7 @@ const Categories = () => {
             >
                 Yeni Kategori Ekle
             </Button>
-            
+
             {/* 📌 Kategori Listesi */}
             <TableContainer component={Paper}>
                 <Table>
@@ -114,11 +133,12 @@ const Categories = () => {
                             <TableCell><b>Kategori Kodu</b></TableCell>
                             <TableCell><b>Kategori Adı</b></TableCell>
                             <TableCell><b>Bağlı Olduğu Kategori</b></TableCell>
+                            <TableCell><b>Alt Kategori Sayısı</b></TableCell>
                             <TableCell align="right"><b>İşlemler</b></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {categories.map((category) => (
+                        {filteredCategories.map((category) => (
                             <TableRow key={category.id}>
                                 <TableCell>{category.categoryCode}</TableCell>
                                 <TableCell>{category.name}</TableCell>
@@ -126,6 +146,9 @@ const Categories = () => {
                                     {category.parentCategoryId
                                         ? categories.find((cat) => cat.id === category.parentCategoryId)?.name || "Bilinmiyor"
                                         : "Ana Kategori"}
+                                </TableCell>
+                                <TableCell>
+                                    {categories.filter((cat) => cat.parentCategoryId === category.id).length}
                                 </TableCell>
                                 <TableCell align="right">
                                     <IconButton color="primary" onClick={() => handleEditCategory(category)}><Edit /></IconButton>

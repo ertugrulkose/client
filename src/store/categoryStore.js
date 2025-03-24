@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { fetchCategories, addCategory, updateCategory, deleteCategory } from "../api/categoryApi";
+import * as categoryApi from "../api/categoryApi";
 
 // 📌 Kategorileri state olarak tutacak olan bir store oluşturduk. Bu store içinde kategorileri çekme, ekleme, güncelleme ve silme işlemlerini gerçekleştirebileceğiz. Bu işlemleri API ile haberleşerek gerçekleştireceğiz.
 
@@ -13,7 +13,7 @@ const useCategoryStore = create((set) => ({
   fetchCategories: async () => {
     set({ loading: true, error: null });
     try {
-        const response = await fetchCategories();
+        const response = await categoryApi.fetchCategories();
         console.log("API’den gelen kategori verisi:", response);
 
         if (response.data) {
@@ -29,17 +29,20 @@ const useCategoryStore = create((set) => ({
   // 🟢 Yeni kategori ekle
   addCategory: async (categoryData) => {
     try {
-      const newCategory = await addCategory(categoryData);
+      const newCategory = await categoryApi.addCategory(categoryData); // ✅ doğru olan bu
       set((state) => ({ categories: [...state.categories, newCategory] }));
+      return newCategory; // ✅ geri döndürüyoruz ki frontend'te expanded çalışsın
     } catch (error) {
       set({ error: "Kategori eklenirken hata oluştu!" });
+      return null;
     }
   },
+  
 
   // 🟢 Kategori güncelle
   updateCategory: async (id, updatedData) => {
     try {
-        await updateCategory(id, updatedData); // API isteği
+        await categoryApi.updateCategory(id, updatedData); // API isteği
         set((state) => ({
             categories: state.categories.map((cat) =>
                 cat.id === id ? { ...cat, ...updatedData } : cat
@@ -54,7 +57,7 @@ const useCategoryStore = create((set) => ({
   // 🟢 Kategori sil
   deleteCategory: async (id) => {
     try {
-      await deleteCategory(id);
+      await categoryApi.deleteCategory(id);
       set((state) => ({
         categories: state.categories.filter((cat) => cat.id !== id),
       }));

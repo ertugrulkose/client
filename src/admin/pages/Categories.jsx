@@ -4,8 +4,16 @@ import {
     Typography, Button, MenuItem, Select, IconButton, Dialog, DialogTitle, DialogContent,
     DialogActions, CircularProgress, TextField
 } from "@mui/material";
-import { Edit, Delete, Add, Save, Close } from "@mui/icons-material";
+import { Edit, Delete, Add, Save, Close, AccountTree } from "@mui/icons-material";
 import useCategoryStore from "../../store/categoryStore"; // ✅ Zustand Store'u içe aktardık
+
+
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+
+import { Settings } from '@mui/icons-material';
+
+
 
 const Categories = () => {
     const { categories, fetchCategories, addCategory, updateCategory, deleteCategory, loading, error } = useCategoryStore(); // Zustand store'u kullan
@@ -17,6 +25,15 @@ const Categories = () => {
     const [newCategory, setNewCategory] = useState({ name: "", parentCategoryId: null });
 
     const [searchQuery, setSearchQuery] = useState(""); // 🆕 Arama metni için state
+
+    const [openTreeDialog, setOpenTreeDialog] = useState(false); // 🆕 Şema dialog kontrolü
+
+    const [selectedCategory, setSelectedCategory] = useState(null); // Tıklanan kategori
+    const [openTreeActions, setOpenTreeActions] = useState(false); // Menü dialog kontrolü
+
+    const [expandedItems, setExpandedItems] = useState([]);
+
+
 
     // 📌 Sayfa açıldığında API'den kategorileri çek
     useEffect(() => {
@@ -42,9 +59,11 @@ const Categories = () => {
     }
 
     // 🆕 Arama filtresi uygulanmış kategori listesi
-    const filteredCategories = categories.filter((category) =>
-        category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredCategories = categories.filter(
+        (category) =>
+            category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
 
     // ✅ **Yeni Kategori Ekleme**
     const handleAddCategory = async () => {
@@ -52,10 +71,22 @@ const Categories = () => {
             alert("Kategori adı boş olamaz!");
             return;
         }
+
         try {
-            await addCategory(newCategory);
+            const added = await addCategory(newCategory);
+            await fetchCategories(); // ✅ geçici çözümle store'ı kesin güncelle
             setNewCategory({ name: "", parentCategoryId: null });
-            setOpenAddDialog(false); // Modalı kapat
+            setOpenAddDialog(false);
+
+            // ✅ Eklenen kategori bir alt kategori ise, parent'ı açık tut
+            if (added?.parentCategoryId) {
+                setExpandedItems((prev) => {
+                    const parentId = added.parentCategoryId.toString();
+                    return prev.includes(parentId) ? prev : [...prev, parentId];
+                });
+            }
+
+            // ❌ fetchCategories yok artık çünkü Zustand zaten state'i güncelliyor
         } catch (error) {
             console.error("Kategori eklenirken hata oluştu:", error);
         }
@@ -98,6 +129,41 @@ const Categories = () => {
         }
     };
 
+    const handleTreeItemClick = (category) => {
+        setSelectedCategory(category);
+        setOpenTreeActions(true);
+    };
+
+
+    const renderTreeItems = (parentId = null) => {
+        const children = categories.filter(cat => cat.parentCategoryId === parentId);
+
+        return children.map(child => (
+            <TreeItem
+                key={child.id}
+                itemId={child.id.toString()}
+                label={
+                    <Box display="flex" alignItems="center" justifyContent="space-between" pr={1}>
+                        <Typography variant="body2">{child.name}</Typography>
+                        <IconButton
+                            size="small"
+                            onClick={(e) => {
+                                e.stopPropagation(); // ✅ alt kategoriyi açmasını engelle
+                                handleTreeItemClick(child);
+                            }}
+                        >
+                            <Settings fontSize="small" />
+                        </IconButton>
+                    </Box>
+                }
+            >
+                {renderTreeItems(child.id)}
+            </TreeItem>
+        ));
+    };
+
+
+
     return (
         <Box sx={{ padding: 3 }}>
             <Typography variant="h5" gutterBottom>
@@ -124,6 +190,17 @@ const Categories = () => {
             >
                 Yeni Kategori Ekle
             </Button>
+
+            <Button
+                variant="outlined"
+                color="secondary"
+                onClick={() => setOpenTreeDialog(true)}
+                startIcon={<AccountTree />}
+                sx={{ marginLeft: 2, marginBottom: 2 }}
+            >
+                Kategori Şeması
+            </Button>
+
 
             {/* 📌 Kategori Listesi */}
             <TableContainer component={Paper}>
@@ -253,6 +330,77 @@ const Categories = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <Dialog open={openTreeDialog} onClose={() => setOpenTreeDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Kategori Şeması</DialogTitle>
+                <DialogContent dividers>
+                    <SimpleTreeView
+                        expandedItems={expandedItems}
+                        onExpandedItemsChange={(event, nodeIds) => setExpandedItems(nodeIds)}
+                    >
+                        {renderTreeItems()}
+                    </SimpleTreeView>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenTreeDialog(false)} startIcon={<Close />}>
+                        Kapat
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={openTreeActions} onClose={() => setOpenTreeActions(false)}>
+                <DialogTitle>{selectedCategory?.name} - İşlemler</DialogTitle>
+                <DialogContent dividers>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => {
+                            setEditCategory(selectedCategory);
+                            setOpenEditDialog(true);
+                            setOpenTreeActions(false);
+                        }}
+                        sx={{ mb: 1 }}
+                    >
+                        Kategoriyi Düzenle
+                    </Button>
+
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={() => {
+                            setNewCategory({ name: "", parentCategoryId: selectedCategory.id });
+                            setOpenAddDialog(true);
+                            setOpenTreeActions(false);
+                        }}
+                        sx={{ mb: 1 }}
+                    >
+                        Alt Kategori Ekle
+                    </Button>
+
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Delete />}
+                        onClick={() => {
+                            setDeleteTarget(selectedCategory);
+                            setOpenDeleteDialog(true);
+                            setOpenTreeActions(false);
+                        }}
+                    >
+                        Kategoriyi Sil
+                    </Button>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenTreeActions(false)} startIcon={<Close />}>
+                        Kapat
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+
         </Box>
     );
 };

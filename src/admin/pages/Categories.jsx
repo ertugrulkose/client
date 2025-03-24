@@ -33,6 +33,7 @@ const Categories = () => {
 
     const [expandedItems, setExpandedItems] = useState([]);
 
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // 🆕 Sıralama için state
 
 
     // 📌 Sayfa açıldığında API'den kategorileri çek
@@ -134,6 +135,31 @@ const Categories = () => {
         setOpenTreeActions(true);
     };
 
+    const categoriesWithCounts = filteredCategories.map(cat => ({
+        ...cat,
+        subCategoryCount: categories.filter(c => c.parentCategoryId === cat.id).length
+    }));
+
+    const sortedCategories = [...categoriesWithCounts].sort((a, b) => {
+        if (!sortConfig.key) return 0;
+    
+        const aValue = a[sortConfig.key]?.toString().toLowerCase?.() || a[sortConfig.key];
+        const bValue = b[sortConfig.key]?.toString().toLowerCase?.() || b[sortConfig.key];
+    
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    const handleSort = (key) => {
+        setSortConfig((prev) => {
+            if (prev.key === key) {
+                return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+            }
+            return { key, direction: "asc" };
+        });
+    };
+
 
     const renderTreeItems = (parentId = null) => {
         const children = categories.filter(cat => cat.parentCategoryId === parentId);
@@ -207,15 +233,23 @@ const Categories = () => {
                 <Table>
                     <TableHead>
                         <TableRow>
-                            <TableCell><b>Kategori Kodu</b></TableCell>
-                            <TableCell><b>Kategori Adı</b></TableCell>
-                            <TableCell><b>Bağlı Olduğu Kategori</b></TableCell>
-                            <TableCell><b>Alt Kategori Sayısı</b></TableCell>
+                            <TableCell onClick={() => handleSort("categoryCode")} sx={{ cursor: "pointer" }}>
+                                <b>Kategori Kodu</b> {sortConfig.key === "categoryCode" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                            </TableCell>
+                            <TableCell onClick={() => handleSort("name")} sx={{ cursor: "pointer" }}>
+                                <b>Kategori Adı</b> {sortConfig.key === "name" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                            </TableCell>
+                            <TableCell onClick={() => handleSort("parentCategoryId")} sx={{ cursor: "pointer" }}>
+                                <b>Bağlı Olduğu Kategori</b> {sortConfig.key === "parentCategoryId" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                            </TableCell>
+                            <TableCell onClick={() => handleSort("subCategoryCount")} sx={{ cursor: "pointer" }}>
+                                <b>Alt Kategori Sayısı</b> {sortConfig.key === "subCategoryCount" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
+                            </TableCell>
                             <TableCell align="right"><b>İşlemler</b></TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {filteredCategories.map((category) => (
+                        {sortedCategories.map((category) => (
                             <TableRow key={category.id}>
                                 <TableCell>{category.categoryCode}</TableCell>
                                 <TableCell>{category.name}</TableCell>

@@ -13,6 +13,8 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 
 import { Settings } from '@mui/icons-material';
 
+import axios from "axios"; // zaten vardır muhtemelen
+
 
 
 const Categories = () => {
@@ -24,7 +26,7 @@ const Categories = () => {
     const [openAddDialog, setOpenAddDialog] = useState(false); // 🆕 Modal kontrolü için state
     const [newCategory, setNewCategory] = useState({ name: "", parentCategoryId: null });
 
-    const [searchQuery, setSearchQuery] = useState(""); // 🆕 Arama metni için state
+    // const [searchQuery, setSearchQuery] = useState(""); // 🆕 Arama metni için state
 
     const [openTreeDialog, setOpenTreeDialog] = useState(false); // 🆕 Şema dialog kontrolü
 
@@ -35,6 +37,16 @@ const Categories = () => {
 
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // 🆕 Sıralama için state
 
+    const [openSubDialog, setOpenSubDialog] = useState(false);
+    const [selectedForSubs, setSelectedForSubs] = useState(null);
+
+
+    const [filterConfig, setFilterConfig] = useState({
+        categoryCode: "",
+        name: "",
+        parentCategoryId: "",
+        subCategoryCount: "",
+    });
 
     // 📌 Sayfa açıldığında API'den kategorileri çek
     useEffect(() => {
@@ -59,12 +71,28 @@ const Categories = () => {
         );
     }
 
-    // 🆕 Arama filtresi uygulanmış kategori listesi
-    const filteredCategories = categories.filter(
-        (category) =>
-            category?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const categoriesWithCounts = categories.map(cat => ({
+        ...cat,
+        subCategoryCount: categories.filter(c => c.parentCategoryId === cat.id).length
+    }));
 
+    // 🆕 Arama filtresi uygulanmış kategori listesi
+    const filteredCategories = categoriesWithCounts.filter(category => {
+        return (
+            category.categoryCode.toLowerCase().includes(filterConfig.categoryCode.toLowerCase()) &&
+            category.name.toLowerCase().includes(filterConfig.name.toLowerCase()) &&
+            (
+                filterConfig.parentCategoryId === "" ||
+                (filterConfig.parentCategoryId === "null" && category.parentCategoryId === null) ||
+                String(category.parentCategoryId) === filterConfig.parentCategoryId
+            ) &&
+            (
+                filterConfig.subCategoryCount === "" ||
+                (filterConfig.subCategoryCount === "0" && category.subCategoryCount === 0) ||
+                (filterConfig.subCategoryCount === "1+" && category.subCategoryCount > 0)
+            )
+        );
+    });
 
     // ✅ **Yeni Kategori Ekleme**
     const handleAddCategory = async () => {
@@ -135,20 +163,15 @@ const Categories = () => {
         setOpenTreeActions(true);
     };
 
-    const categoriesWithCounts = filteredCategories.map(cat => ({
-        ...cat,
-        subCategoryCount: categories.filter(c => c.parentCategoryId === cat.id).length
-    }));
-
-    const sortedCategories = [...categoriesWithCounts].sort((a, b) => {
+    const sortedCategories = [...filteredCategories].sort((a, b) => {
         if (!sortConfig.key) return 0;
-    
-        const aValue = a[sortConfig.key]?.toString().toLowerCase?.() || a[sortConfig.key];
-        const bValue = b[sortConfig.key]?.toString().toLowerCase?.() || b[sortConfig.key];
-    
-        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
+        return aValue < bValue
+            ? sortConfig.direction === "asc" ? -1 : 1
+            : aValue > bValue
+                ? sortConfig.direction === "asc" ? 1 : -1
+                : 0;
     });
 
     const handleSort = (key) => {
@@ -159,6 +182,7 @@ const Categories = () => {
             return { key, direction: "asc" };
         });
     };
+
 
 
     const renderTreeItems = (parentId = null) => {
@@ -189,6 +213,23 @@ const Categories = () => {
     };
 
 
+    const handleExcelExport = async () => {
+        try {
+            await axios.post("https://localhost:7242/api/Test/category", {
+                requestedBy: "admin", // isteğe göre
+                requestedAt: new Date(),
+                exportType: "category"
+            });
+            alert("Excel export isteği gönderildi ✅");
+        } catch (error) {
+            console.error("Excel export hatası:", error);
+            alert("❌ Export işlemi sırasında hata oluştu");
+        }
+    };
+
+
+
+
 
     return (
         <Box sx={{ padding: 3 }}>
@@ -197,14 +238,14 @@ const Categories = () => {
             </Typography>
 
             {/* 🆕 Arama kutusu */}
-            <TextField
+            {/* <TextField
                 label="Kategori Ara"
                 variant="outlined"
                 fullWidth
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 sx={{ marginBottom: 2 }}
-            />
+            /> */}
 
             {/* 🆕 Kategori Ekleme Butonu */}
             <Button
@@ -227,11 +268,20 @@ const Categories = () => {
                 Kategori Şeması
             </Button>
 
+            <Button
+                variant="outlined"
+                color="success"
+                sx={{ ml: 2, mb: 2 }}
+                onClick={handleExcelExport}
+            >
+                Excel'e Aktar
+            </Button>
 
             {/* 📌 Kategori Listesi */}
             <TableContainer component={Paper}>
                 <Table>
                     <TableHead>
+                        {/* 🔼 Sıralanabilir Başlıklar */}
                         <TableRow>
                             <TableCell onClick={() => handleSort("categoryCode")} sx={{ cursor: "pointer" }}>
                                 <b>Kategori Kodu</b> {sortConfig.key === "categoryCode" ? (sortConfig.direction === "asc" ? "↑" : "↓") : ""}
@@ -247,7 +297,87 @@ const Categories = () => {
                             </TableCell>
                             <TableCell align="right"><b>İşlemler</b></TableCell>
                         </TableRow>
+
+                        {/* 🔍 Filtre Satırı */}
+                        <TableRow>
+                            <TableCell>
+                                <TextField
+                                    placeholder="Kodu ara"
+                                    value={filterConfig.categoryCode}
+                                    onChange={(e) =>
+                                        setFilterConfig({ ...filterConfig, categoryCode: e.target.value })
+                                    }
+                                    variant="standard"
+                                    fullWidth
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <TextField
+                                    placeholder="Adı ara"
+                                    value={filterConfig.name}
+                                    onChange={(e) =>
+                                        setFilterConfig({ ...filterConfig, name: e.target.value })
+                                    }
+                                    variant="standard"
+                                    fullWidth
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <Select
+                                    value={filterConfig.parentCategoryId}
+                                    onChange={(e) =>
+                                        setFilterConfig({ ...filterConfig, parentCategoryId: e.target.value })
+                                    }
+                                    displayEmpty
+                                    fullWidth
+                                    variant="standard"
+                                >
+                                    <MenuItem value="">Tümü</MenuItem>
+                                    <MenuItem value="null">Ana Kategori</MenuItem>
+                                    {categories
+                                        .filter((cat) => cat.parentCategoryId === null)
+                                        .map((cat) => (
+                                            <MenuItem key={cat.id} value={String(cat.id)}>
+                                                {cat.name}
+                                            </MenuItem>
+                                        ))}
+                                </Select>
+                            </TableCell>
+                            <TableCell>
+                                <Select
+                                    value={filterConfig.subCategoryCount || ""}
+                                    onChange={(e) =>
+                                        setFilterConfig({ ...filterConfig, subCategoryCount: e.target.value })
+                                    }
+                                    displayEmpty
+                                    fullWidth
+                                    variant="standard"
+                                >
+                                    <MenuItem value="">Tümü</MenuItem>
+                                    <MenuItem value="0">Alt kategorisi olmayanlar</MenuItem>
+                                    <MenuItem value="1+">Alt kategorisi olanlar</MenuItem>
+                                </Select>
+                            </TableCell>
+
+                            <TableCell align="right">
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() =>
+                                        setFilterConfig({
+                                            categoryCode: "",
+                                            name: "",
+                                            parentCategoryId: "",
+                                            subCategoryCount: ""
+                                        })
+                                    }
+                                >
+                                    Sıfırla
+                                </Button>
+                            </TableCell>
+                        </TableRow>
                     </TableHead>
+
                     <TableBody>
                         {sortedCategories.map((category) => (
                             <TableRow key={category.id}>
@@ -258,9 +388,17 @@ const Categories = () => {
                                         ? categories.find((cat) => cat.id === category.parentCategoryId)?.name || "Bilinmiyor"
                                         : "Ana Kategori"}
                                 </TableCell>
-                                <TableCell>
-                                    {categories.filter((cat) => cat.parentCategoryId === category.id).length}
+
+                                <TableCell
+                                    sx={{ cursor: "pointer", color: "primary.main", textDecoration: "underline" }}
+                                    onClick={() => {
+                                        setSelectedForSubs(category);
+                                        setOpenSubDialog(true);
+                                    }}
+                                >
+                                    {category.subCategoryCount}
                                 </TableCell>
+
                                 <TableCell align="right">
                                     <IconButton color="primary" onClick={() => handleEditCategory(category)}><Edit /></IconButton>
                                     <IconButton color="error" onClick={() => handleDeleteCategory(category)}><Delete /></IconButton>
@@ -429,6 +567,29 @@ const Categories = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpenTreeActions(false)} startIcon={<Close />}>
+                        Kapat
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={openSubDialog} onClose={() => setOpenSubDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>
+                    {selectedForSubs?.name} - Alt Kategoriler
+                </DialogTitle>
+                <DialogContent dividers>
+                    {categories
+                        .filter(cat => cat.parentCategoryId === selectedForSubs?.id)
+                        .map((sub) => (
+                            <Box key={sub.id} mb={1}>
+                                • {sub.name} ({sub.categoryCode})
+                            </Box>
+                        ))}
+                    {categories.filter(cat => cat.parentCategoryId === selectedForSubs?.id).length === 0 && (
+                        <Typography color="text.secondary">Alt kategori bulunamadı.</Typography>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenSubDialog(false)} startIcon={<Close />}>
                         Kapat
                     </Button>
                 </DialogActions>

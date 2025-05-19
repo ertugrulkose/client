@@ -9,6 +9,11 @@ import { Edit, Delete, AddAPhoto, Close, Add, AddToPhotos } from '@mui/icons-mat
 
 import { getPagedProducts, updateProduct, deleteProduct } from '../../api/productApi';
 import useCategoryStore from '../../store/categoryStore'; // ✅ kategorileri çekmek için
+import { useNavigate } from 'react-router-dom';
+
+import axios from 'axios';
+
+
 
 const Products = () => {
     const { fetchCategories, allCategories } = useCategoryStore();
@@ -31,13 +36,17 @@ const Products = () => {
         images: []
     });
 
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [openDetailDialog, setOpenDetailDialog] = useState(false);
+
     const [editProduct, setEditProduct] = useState(null);
     const [openEditDialog, setOpenEditDialog] = useState(false);
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+    const navigate = useNavigate();
 
-    const pageSize = 10;
+    const pageSize = 7;
 
     const fetchProducts = async (pageNumber) => {
         try {
@@ -60,6 +69,11 @@ const Products = () => {
         fetchCategories();
         fetchProducts(1);
     }, []);
+
+    const handleRowClick = (product) => {
+        setSelectedProduct(product);
+        setOpenDetailDialog(true);
+    };
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -110,12 +124,34 @@ const Products = () => {
             return;
         }
 
-        console.log('Eklenecek Ürün:', newProduct);
+        const formData = new FormData();
+        formData.append("name", newProduct.name);
+        formData.append("price", newProduct.price);
+        formData.append("stock", newProduct.stock);
+        formData.append("categoryId", newProduct.categoryId);
+        if (newProduct.thumbnail) {
+            formData.append("thumbnail", newProduct.thumbnail);
+        }
+        newProduct.images.forEach((file) => {
+            formData.append("images", file); // aynı key ile çoklu dosya
+        });
 
-        alert('✅ Ürün ekleme isteği hazırlandı. (Backend entegrasyonu yapılacak)');
-        setOpenAddDialog(false);
+        debugger;
 
-        // Not: Burada backend'e FormData ile gönderim yapacağız ileride.
+        try {
+            await axios.post("https://localhost:7242/api/Products", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+
+            alert("✅ Ürün başarıyla eklendi!");
+            setOpenAddDialog(false);
+            fetchProducts(1); // Listeyi yenile
+        } catch (err) {
+            console.error("❌ Ürün eklenirken hata:", err);
+            alert("Ürün eklenemedi.");
+        }
     };
 
     if (loading) {
@@ -157,6 +193,7 @@ const Products = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell><b>Görsel</b></TableCell>
                                 <TableCell><b>Ürün Adı</b></TableCell>
                                 <TableCell><b>Fiyat</b></TableCell>
                                 <TableCell><b>Stok</b></TableCell>
@@ -166,7 +203,33 @@ const Products = () => {
                         </TableHead>
                         <TableBody>
                             {products.map((product) => (
-                                <TableRow key={product.id}>
+                                <TableRow key={product.id} hover>
+                                    <TableCell>
+                                        {product.thumbnailPath ? (
+                                            <img
+                                                src={`https://localhost:7242${product.thumbnailPath}`}
+                                                alt={product.name}
+                                                style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }}
+                                                onClick={() => handleRowClick(product)} // 👈 sadece görsele tıklanırsa detay açılır
+
+                                            />
+                                        ) : (
+                                            <Box
+                                                sx={{
+                                                    width: 60,
+                                                    height: 60,
+                                                    backgroundColor: '#eee',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    borderRadius: 6,
+                                                    fontSize: 12
+                                                }}
+                                            >
+                                                Yok
+                                            </Box>
+                                        )}
+                                    </TableCell>
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.price}</TableCell>
                                     <TableCell>{product.stock}</TableCell>
@@ -328,6 +391,58 @@ const Products = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Ürün Detayı</DialogTitle>
+                <DialogContent dividers>
+                    {selectedProduct && (
+                        <>
+                            {selectedProduct.thumbnailPath && (
+                                <Box mb={2}>
+                                    <img
+                                        src={`https://localhost:7242${selectedProduct.thumbnailPath}`}
+                                        alt="detay görsel"
+                                        style={{ width: '100%', borderRadius: 8 }}
+                                    />
+                                </Box>
+                            )}
+                            <Typography variant="subtitle1"><b>Ad:</b> {selectedProduct.name}</Typography>
+                            <Typography variant="subtitle1"><b>Fiyat:</b> {selectedProduct.price}₺</Typography>
+                            <Typography variant="subtitle1"><b>Stok:</b> {selectedProduct.stock}</Typography>
+                            <Typography variant="subtitle1"><b>Kategori:</b> {selectedProduct.categoryName}</Typography>
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenDetailDialog(false)}>Kapat</Button>
+                    <Button variant="contained" color="primary" onClick={() => {
+                        navigate(`/admin/products/${selectedProduct.id}/edit`);
+                    }}>
+                        Düzenle
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+                <Button
+                    disabled={currentPage <= 1}
+                    onClick={handlePreviousPage}
+                >
+                    Önceki
+                </Button>
+
+                <Typography variant="body2" mx={2}>
+                    Sayfa {currentPage} / {totalPages} - Toplam {totalCount} kayıt bulundu
+                </Typography>
+
+                <Button
+                    disabled={currentPage >= totalPages}
+                    onClick={handleNextPage}
+                >
+                    Sonraki
+                </Button>
+            </Box>
+
         </Box>
     );
 };

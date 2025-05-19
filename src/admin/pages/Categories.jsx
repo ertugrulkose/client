@@ -1,24 +1,20 @@
-import { useEffect, useState } from "react";
 import {
     Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Typography, Button, MenuItem, Select, IconButton, Dialog, DialogTitle, DialogContent,
     DialogActions, CircularProgress, TextField
 } from "@mui/material";
 import { Edit, Delete, Add, Save, Close, AccountTree } from "@mui/icons-material";
-import useCategoryStore from "../../store/categoryStore"; // ✅ Zustand Store'u içe aktardık
-
-
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-
+import useCategoryStore from "../../store/categoryStore"; // ✅ Zustand Store'u içe aktardık
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { Settings } from '@mui/icons-material';
-
+import { useEffect, useState } from "react";
 import axios from "axios"; // zaten vardır muhtemelen
 
 
 
 const Categories = () => {
-    const { categories, allCategories, searchCategories, fetchCategories, addCategory, updateCategory, deleteCategory, loading, error, currentPage, totalPages, pageSize, totalCategoryCount, getPagedCategories } = useCategoryStore(); // Zustand store'u kullan
+    const { categories, allCategories, searchCategories, fetchCategories, addCategory, updateCategory, deleteCategory, loading, error, currentPage, totalPages, pageSize, totalCategoryCount } = useCategoryStore(); // Zustand store'u kullan
     const [editCategory, setEditCategory] = useState(null);
     const [openEditDialog, setOpenEditDialog] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -47,11 +43,6 @@ const Categories = () => {
         parentCategoryId: "",
         subCategoryCount: "",
     });
-
-
-    // useEffect(() => {
-    //     getPagedCategories(1, pageSize);
-    // }, []);
 
     useEffect(() => {
         fetchCategories(); // sadece dropdown için çek

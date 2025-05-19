@@ -13,10 +13,21 @@ export const getPagedProducts = async (pageNumber, pageSize) => {
     }
 };
 
+// 🆕 ID bazlı ürü çekme
+export const getProductById = async (id) => {
+  try {
+    const response = await axios.get(`${API_URL}/${id}`);
+    return response.data.data;
+  } catch (error) {
+    console.error("❌ Ürün detay getirilemedi:", error);
+    throw error;
+  }
+};
+
+
 // 🆕 Ürün ekleme
 export const addProduct = async (productData) => {
     try {
-        debugger;
         const response = await axios.post(API_URL, productData);
         return response.data;
     } catch (error) {
@@ -27,8 +38,13 @@ export const addProduct = async (productData) => {
 
 // Ürün Güncelle
 export const updateProduct = async (id, updatedData) => {
+   try {
     const response = await axios.put(`${API_URL}/${id}`, updatedData);
     return response.data;
+  } catch (error) {
+    console.error("❌ Ürün güncelleme hatası:", error);
+    throw error;
+  }
   };
   
   // Ürün Sil

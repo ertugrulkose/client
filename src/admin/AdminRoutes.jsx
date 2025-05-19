@@ -7,6 +7,7 @@ import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import Categories from "./pages/Categories";
 import AddProduct from "./pages/AddProduct";
+import EditProductPage from "./pages/EditProductPage"; // Corrected import path
 
 const AdminRoutes = () => {
   return (
@@ -19,6 +20,7 @@ const AdminRoutes = () => {
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<Users />} />
         <Route path="addproduct" element={<AddProduct />} />
+        <Route path="products/:id/edit" element={<EditProductPage />} />
       </Route>
     </Routes>
   );

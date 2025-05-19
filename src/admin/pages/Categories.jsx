@@ -18,7 +18,7 @@ import axios from "axios"; // zaten vardır muhtemelen
 
 
 const Categories = () => {
-    const { categories, fetchCategories, addCategory, updateCategory, deleteCategory, loading, error } = useCategoryStore(); // Zustand store'u kullan
+    const { categories, allCategories, searchCategories, fetchCategories, addCategory, updateCategory, deleteCategory, loading, error, currentPage, totalPages, pageSize, totalCategoryCount, getPagedCategories } = useCategoryStore(); // Zustand store'u kullan
     const [editCategory, setEditCategory] = useState(null);
     const [openEditDialog, setOpenEditDialog] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
@@ -48,10 +48,19 @@ const Categories = () => {
         subCategoryCount: "",
     });
 
-    // 📌 Sayfa açıldığında API'den kategorileri çek
+
+    // useEffect(() => {
+    //     getPagedCategories(1, pageSize);
+    // }, []);
+
     useEffect(() => {
-        fetchCategories();
-    }, [fetchCategories]);
+        fetchCategories(); // sadece dropdown için çek
+        console.log("Tüm Kategoriler:", allCategories); // ✅ Tüm kategorileri kontrol et
+        console.log("Kategoriler:", categories); // ✅ Kategorileri kontrol et
+        console.log("Toplam Kategori Sayısı:", allCategories); // ✅ Toplam kategori sayısını kontrol et
+        searchCategories({}, sortConfig, 1, pageSize);
+    }, []);
+
 
     // 🛑 **Eğer yükleme devam ediyorsa, yükleme göstergesi çıkart**
     if (loading) {
@@ -70,29 +79,6 @@ const Categories = () => {
             </Box>
         );
     }
-
-    const categoriesWithCounts = categories.map(cat => ({
-        ...cat,
-        subCategoryCount: categories.filter(c => c.parentCategoryId === cat.id).length
-    }));
-
-    // 🆕 Arama filtresi uygulanmış kategori listesi
-    const filteredCategories = categoriesWithCounts.filter(category => {
-        return (
-            category.categoryCode.toLowerCase().includes(filterConfig.categoryCode.toLowerCase()) &&
-            category.name.toLowerCase().includes(filterConfig.name.toLowerCase()) &&
-            (
-                filterConfig.parentCategoryId === "" ||
-                (filterConfig.parentCategoryId === "null" && category.parentCategoryId === null) ||
-                String(category.parentCategoryId) === filterConfig.parentCategoryId
-            ) &&
-            (
-                filterConfig.subCategoryCount === "" ||
-                (filterConfig.subCategoryCount === "0" && category.subCategoryCount === 0) ||
-                (filterConfig.subCategoryCount === "1+" && category.subCategoryCount > 0)
-            )
-        );
-    });
 
     // ✅ **Yeni Kategori Ekleme**
     const handleAddCategory = async () => {
@@ -163,7 +149,7 @@ const Categories = () => {
         setOpenTreeActions(true);
     };
 
-    const sortedCategories = [...filteredCategories].sort((a, b) => {
+    const sortedCategories = [...categories].sort((a, b) => {
         if (!sortConfig.key) return 0;
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
@@ -186,7 +172,7 @@ const Categories = () => {
 
 
     const renderTreeItems = (parentId = null) => {
-        const children = categories.filter(cat => cat.parentCategoryId === parentId);
+        const children = allCategories.filter(cat => cat.parentCategoryId === parentId);
 
         return children.map(child => (
             <TreeItem
@@ -215,19 +201,49 @@ const Categories = () => {
 
     const handleExcelExport = async () => {
         try {
-            await axios.post("https://localhost:7242/api/Test/category", {
-                requestedBy: "admin", // isteğe göre
+            const payload = {
+                requestedBy: "admin", // JWT varsa buradan çekilir ileride
                 requestedAt: new Date(),
-                exportType: "category"
-            });
-            alert("Excel export isteği gönderildi ✅");
+                exportType: "category",
+                filters: {
+                    categoryCode: filterConfig.categoryCode,
+                    name: filterConfig.name,
+                    parentCategoryId: filterConfig.parentCategoryId,
+                    subCategoryCount: filterConfig.subCategoryCount
+                },
+                columns: [ // şimdilik sabit tuttuk, ileride checkbox ile seçilebilir
+                    "CategoryCode",
+                    "Name",
+                    "ParentCategoryName",
+                    "SubCategoryCount"
+                ],
+                sort: sortConfig.key
+                    ? {
+                        key: sortConfig.key,
+                        direction: sortConfig.direction || 'asc'
+                    }
+                    : undefined, // ❌ null gönderme, hiç gönderme
+            };
+            console.log(payload)
+            debugger;
+            await axios.post("https://localhost:7242/api/Report/category", payload);
+            alert("✅ Excel export isteği başarıyla gönderildi!");
         } catch (error) {
             console.error("Excel export hatası:", error);
             alert("❌ Export işlemi sırasında hata oluştu");
         }
     };
 
+    const handleSearch = async () => {
+        const filters = {
+            categoryCode: filterConfig.categoryCode,
+            name: filterConfig.name,
+            parentCategoryId: filterConfig.parentCategoryId,
+            subCategoryCount: filterConfig.subCategoryCount ?? undefined
+        };
 
+        await searchCategories(filters, sortConfig, 1, pageSize);
+    };
 
 
 
@@ -277,6 +293,16 @@ const Categories = () => {
                 Excel'e Aktar
             </Button>
 
+            <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSearch}
+                sx={{ ml: 2 }}
+            >
+                Ara
+            </Button>
+
+
             {/* 📌 Kategori Listesi */}
             <TableContainer component={Paper}>
                 <Table>
@@ -307,6 +333,9 @@ const Categories = () => {
                                     onChange={(e) =>
                                         setFilterConfig({ ...filterConfig, categoryCode: e.target.value })
                                     }
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleSearch(); // ✅ enter ile arama
+                                    }}
                                     variant="standard"
                                     fullWidth
                                 />
@@ -318,23 +347,32 @@ const Categories = () => {
                                     onChange={(e) =>
                                         setFilterConfig({ ...filterConfig, name: e.target.value })
                                     }
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") handleSearch(); // ✅ enter ile arama
+                                    }}
                                     variant="standard"
                                     fullWidth
                                 />
                             </TableCell>
                             <TableCell>
                                 <Select
-                                    value={filterConfig.parentCategoryId}
-                                    onChange={(e) =>
-                                        setFilterConfig({ ...filterConfig, parentCategoryId: e.target.value })
-                                    }
-                                    displayEmpty
                                     fullWidth
+                                    displayEmpty
+                                    value={filterConfig.parentCategoryId ?? ""}
+                                    onChange={(e) => {
+                                        let value = e.target.value;
+                                        //if (value === "null") value = null; // Ana kategori için gerçek null gönder
+
+                                        setFilterConfig((prev) => ({
+                                            ...prev,
+                                            parentCategoryId: value
+                                        }));
+                                    }}
                                     variant="standard"
                                 >
                                     <MenuItem value="">Tümü</MenuItem>
                                     <MenuItem value="null">Ana Kategori</MenuItem>
-                                    {categories
+                                    {allCategories
                                         .filter((cat) => cat.parentCategoryId === null)
                                         .map((cat) => (
                                             <MenuItem key={cat.id} value={String(cat.id)}>
@@ -342,39 +380,50 @@ const Categories = () => {
                                             </MenuItem>
                                         ))}
                                 </Select>
+
                             </TableCell>
                             <TableCell>
                                 <Select
-                                    value={filterConfig.subCategoryCount || ""}
-                                    onChange={(e) =>
-                                        setFilterConfig({ ...filterConfig, subCategoryCount: e.target.value })
-                                    }
-                                    displayEmpty
                                     fullWidth
+                                    displayEmpty
+                                    value={filterConfig.subCategoryCount ?? ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFilterConfig(prev => ({
+                                            ...prev,
+                                            subCategoryCount: value === "" ? null : value
+                                        }));
+                                    }}
                                     variant="standard"
                                 >
                                     <MenuItem value="">Tümü</MenuItem>
                                     <MenuItem value="0">Alt kategorisi olmayanlar</MenuItem>
                                     <MenuItem value="1+">Alt kategorisi olanlar</MenuItem>
                                 </Select>
+
+
+
                             </TableCell>
 
                             <TableCell align="right">
                                 <Button
                                     variant="outlined"
                                     size="small"
-                                    onClick={() =>
-                                        setFilterConfig({
+                                    onClick={async () => {
+                                        const resetFilters = {
                                             categoryCode: "",
                                             name: "",
                                             parentCategoryId: "",
                                             subCategoryCount: ""
-                                        })
-                                    }
+                                        };
+                                        setFilterConfig(resetFilters);
+                                        await searchCategories(resetFilters, sortConfig, 1, pageSize);
+                                    }}
                                 >
                                     Sıfırla
                                 </Button>
                             </TableCell>
+
                         </TableRow>
                     </TableHead>
 
@@ -384,9 +433,7 @@ const Categories = () => {
                                 <TableCell>{category.categoryCode}</TableCell>
                                 <TableCell>{category.name}</TableCell>
                                 <TableCell>
-                                    {category.parentCategoryId
-                                        ? categories.find((cat) => cat.id === category.parentCategoryId)?.name || "Bilinmiyor"
-                                        : "Ana Kategori"}
+                                    {category.parentCategoryName || "Ana Kategori"}
                                 </TableCell>
 
                                 <TableCell
@@ -396,7 +443,7 @@ const Categories = () => {
                                         setOpenSubDialog(true);
                                     }}
                                 >
-                                    {category.subCategoryCount}
+                                    {category.subCategories.length}
                                 </TableCell>
 
                                 <TableCell align="right">
@@ -427,7 +474,7 @@ const Categories = () => {
                         onChange={(e) => setNewCategory({ ...newCategory, parentCategoryId: e.target.value })}
                     >
                         <MenuItem value="">Ana Kategori</MenuItem>
-                        {categories
+                        {allCategories
                             .filter(cat => cat.parentCategoryId === null)
                             .map(cat => (
                                 <MenuItem key={cat.id} value={cat.id}>
@@ -464,7 +511,7 @@ const Categories = () => {
                         onChange={(e) => setEditCategory({ ...editCategory, parentCategoryId: e.target.value })}
                     >
                         <MenuItem value="">Ana Kategori</MenuItem>
-                        {categories
+                        {allCategories
                             .filter(cat => cat.parentCategoryId === null)
                             .map(cat => (
                                 <MenuItem key={cat.id} value={cat.id}>
@@ -577,14 +624,13 @@ const Categories = () => {
                     {selectedForSubs?.name} - Alt Kategoriler
                 </DialogTitle>
                 <DialogContent dividers>
-                    {categories
-                        .filter(cat => cat.parentCategoryId === selectedForSubs?.id)
-                        .map((sub) => (
+                    {selectedForSubs?.subCategories.length > 0 ? (
+                        selectedForSubs.subCategories.map((sub) => (
                             <Box key={sub.id} mb={1}>
-                                • {sub.name} ({sub.categoryCode})
+                                • {sub.name}
                             </Box>
-                        ))}
-                    {categories.filter(cat => cat.parentCategoryId === selectedForSubs?.id).length === 0 && (
+                        ))
+                    ) : (
                         <Typography color="text.secondary">Alt kategori bulunamadı.</Typography>
                     )}
                 </DialogContent>
@@ -595,8 +641,39 @@ const Categories = () => {
                 </DialogActions>
             </Dialog>
 
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+
+                <Button
+                    disabled={currentPage <= 1}
+                    onClick={() => {
+                        if (currentPage > 1) {
+                            searchCategories(filterConfig, sortConfig, currentPage - 1, pageSize);
+                        }
+                    }}
+                >
+                    Önceki
+                </Button>
+
+                <Typography variant="body2" mx={2}>
+                    Sayfa {currentPage} / {totalPages} - Toplam {totalCategoryCount} kayıt bulundu
+                </Typography>
+
+                <Button
+                    disabled={currentPage >= totalPages}
+                    onClick={() => {
+                        if (currentPage < totalPages) {
+                            searchCategories(filterConfig, sortConfig, currentPage + 1, pageSize);
+                        }
+                    }}
+                >
+                    Sonraki
+                </Button>
+
+            </Box>
 
         </Box>
+
+
     );
 };
 

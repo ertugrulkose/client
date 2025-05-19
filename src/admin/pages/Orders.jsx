@@ -1,56 +1,61 @@
 import React from 'react';
+import DynamicTable from '../../components/DynamicTable';
+
+import useCategoryStore from '../../store/categoryStore';
 
 const Orders = () => {
-    const orders = [
-        {
-            id: 1,
-            customerName: 'John Doe',
-            date: '2023-10-01',
-            total: 99.99,
-            status: 'Shipped'
-        },
-        {
-            id: 2,
-            customerName: 'Jane Smith',
-            date: '2023-10-02',
-            total: 149.99,
-            status: 'Processing'
-        },
-        {
-            id: 3,
-            customerName: 'Alice Johnson',
-            date: '2023-10-03',
-            total: 79.99,
-            status: 'Delivered'
+    const { searchCategories, addCategory, updateCategory, deleteCategory } = useCategoryStore();
+
+    // Backend'den canlı kategori verisi çeker
+    const fetchCategories = async (filters, sort, page, pageSize) => {
+        const response = await searchCategories(filters, sort, page, pageSize);
+        console.log("Canlı Kategori Verisi:", response);
+        // Zustand store'un içinde zaten veriler tutuluyor, oradan döndür
+        return response || {
+            items: [],
+            totalCount: 0
+        };
+    };
+
+    // CRUD işlemleri için gerçek backend metotlarını çağırıyoruz
+    const handleCreate = () => {
+        const name = prompt("Yeni kategori adını giriniz:");
+        if(name) {
+            addCategory({ name });
         }
-    ];
+    };
+
+    const handleEdit = (item) => {
+        const newName = prompt("Yeni kategori adı:", item.name);
+        if(newName) {
+            updateCategory(item.id, { name: newName });
+        }
+    };
+
+    const handleDelete = (item) => {
+        if(window.confirm(`"${item.name}" kategorisini silmek istediğinize emin misiniz?`)){
+            deleteCategory(item.id);
+        }
+    };
 
     return (
-        <div>
-            <h1>Orders</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Customer Name</th>
-                        <th>Date</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {orders.map(order => (
-                        <tr key={order.id}>
-                            <td>{order.id}</td>
-                            <td>{order.customerName}</td>
-                            <td>{order.date}</td>
-                            <td>${order.total.toFixed(2)}</td>
-                            <td>{order.status}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+        <DynamicTable
+            title="Canlı Kategori Testi"
+            columns={[
+                { field: 'categoryCode', label: 'Kategori Kodu' },
+                { field: 'name', label: 'Kategori Adı' },
+                { field: 'parentCategoryId', label: 'Üst Kategori ID' },
+            ]}
+            fetchData={fetchCategories}
+            onCreate={handleCreate}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            enableCreate={true}
+            enableEdit={true}
+            enableDelete={true}
+            enableExcelExport={false} // şimdilik false yapabiliriz, istersen açabilirsin
+            pageSize={10}
+        />
     );
 };
 
